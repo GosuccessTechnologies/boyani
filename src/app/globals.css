@@ -1,0 +1,284 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  /* Mudhiero Nursing Home brand tokens */
+  --color-mc-primary: var(--mc-primary);
+  --color-mc-secondary: var(--mc-secondary);
+  --color-mc-tertiary: var(--mc-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MEDCARE THEME SYSTEM — 10 themes, injected by ThemeProvider as
+   inline --mc-* variables on <html>. Everything (dashboards AND
+   public website) inherits automatically.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  /* Defaults = Theme 1 (Medical Teal) — overridden inline by ThemeProvider */
+  --mc-primary: #0d9488;
+  --mc-primary-dark: #0f766e;
+  --mc-primary-light: #ccfbf1;
+  --mc-secondary: #f59e0b;
+  --mc-tertiary: #0891b2;
+  --mc-bg-body: #ffffff;
+  --mc-bg-card: #f8fafc;
+  --mc-bg-sidebar: #FFFFFF;
+  --mc-bg-header: #ffffff;
+  --mc-bg-footer: #0f172a;
+  --mc-bg-card-header: #134e4a;
+  --mc-text-primary: #0f172a;
+  --mc-text-secondary: #475569;
+  --mc-text-muted: #94a3b8;
+  --mc-divider: #e2e8f0;
+  --mc-scrollbar: #cbd5e1;
+  --mc-scrollbar-track: #f1f5f9;
+  --mc-font-body: "Inter", system-ui, sans-serif;
+  --mc-font-heading: "Inter", system-ui, sans-serif;
+  --mc-radius: 0.75rem;
+  --mc-card-radius: 0.75rem;
+
+  /* shadcn integration — every component follows the active theme */
+  --radius: var(--mc-radius);
+  --background: var(--mc-bg-body);
+  --foreground: var(--mc-text-primary);
+  --card: #ffffff;
+  --card-foreground: var(--mc-text-primary);
+  --popover: #ffffff;
+  --popover-foreground: var(--mc-text-primary);
+  --primary: var(--mc-primary);
+  --primary-foreground: #ffffff;
+  --secondary: var(--mc-primary-light);
+  --secondary-foreground: var(--mc-primary-dark);
+  --muted: var(--mc-bg-card);
+  --muted-foreground: var(--mc-text-secondary);
+  --accent: var(--mc-primary-light);
+  --accent-foreground: var(--mc-primary-dark);
+  --destructive: #ef4444;
+  --border: var(--mc-divider);
+  --input: var(--mc-divider);
+  --ring: var(--mc-primary);
+  --chart-1: var(--mc-primary);
+  --chart-2: var(--mc-secondary);
+  --chart-3: var(--mc-tertiary);
+  --chart-4: var(--mc-primary-dark);
+  --chart-5: var(--mc-text-muted);
+  --sidebar: var(--mc-bg-sidebar);
+  --sidebar-foreground: #e2e8f0;
+  --sidebar-primary: var(--mc-primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: var(--mc-primary);
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --card: #1e293b;
+  --card-foreground: #e2e8f0;
+  --popover: #1e293b;
+  --popover-foreground: #e2e8f0;
+  --primary: var(--mc-primary);
+  --primary-foreground: #ffffff;
+  --secondary: #1e293b;
+  --secondary-foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #e2e8f0;
+  --destructive: #ef4444;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: var(--mc-primary);
+  --sidebar: #0f172a;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--mc-font-body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--mc-font-heading);
+    /* Theme headingFormat (Instruction 5) — set by ThemeProvider / SSR injection */
+    text-transform: var(--mc-heading-transform, none);
+    font-weight: var(--mc-heading-weight, 700);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MEDCARE COMPONENT STANDARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Themed scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mc-scrollbar) var(--mc-scrollbar-track);
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: var(--mc-scrollbar-track); }
+*::-webkit-scrollbar-thumb { background: var(--mc-scrollbar); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--mc-primary); }
+
+/* Card hero headers (module cards, modal headers) */
+.mc-card-header {
+  background: var(--mc-bg-card-header);
+  color: #ffffff;
+}
+
+/* Premium sinking-inset inputs */
+.mc-input {
+  border: 1.5px solid var(--mc-divider);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-radius: var(--mc-radius);
+  background: #ffffff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.mc-input:focus, .mc-input:focus-visible {
+  border-color: var(--mc-primary);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06), 0 0 0 3px color-mix(in srgb, var(--mc-primary) 18%, transparent);
+  outline: none;
+}
+
+/* DataTable: zebra rows + alternating header backgrounds + light inset
+   column borders (Instruction 20 — theme-aware, sink inwards) */
+.mc-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
+.mc-table thead th { background: var(--mc-bg-card); padding: 0.625rem 0.75rem; text-align: left; font-weight: 600; color: var(--mc-text-secondary); border-bottom: 2px solid var(--mc-divider); }
+.mc-table thead th:nth-child(odd) { background: color-mix(in srgb, var(--mc-primary) 8%, var(--mc-bg-card)); }
+.mc-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--mc-primary) 4%, #ffffff); }
+.mc-table tbody tr:hover { background: color-mix(in srgb, var(--mc-primary) 10%, #ffffff); }
+.mc-table tbody td { padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--mc-divider); }
+/* Light inset column borders — sink inwards via inset box-shadow */
+.mc-table thead th + th,
+.mc-table tbody td + td {
+  box-shadow: inset 1px 0 0 0 color-mix(in srgb, var(--mc-divider) 75%, transparent);
+}
+.mc-table thead th { box-shadow: inset -1px 0 0 0 color-mix(in srgb, var(--mc-divider) 75%, transparent); }
+
+/* StatCard v2 — slow alternating tint animation */
+@keyframes mc-stat-breathe {
+  0%, 100% { background-color: var(--mc-stat-tint-base, rgba(0,0,0,0.02)); }
+  50% { background-color: var(--mc-stat-tint-alt, rgba(0,0,0,0.05)); }
+}
+.mc-stat-shift {
+  animation: mc-stat-breathe 9s ease-in-out infinite;
+}
+
+/* Chart panels — unique soft backgrounds (Instruction 14) */
+.mc-chart-panel {
+  background:
+    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--mc-primary) 7%, transparent) 0%, transparent 55%),
+    radial-gradient(120% 100% at 100% 0%, color-mix(in srgb, var(--mc-tertiary) 7%, transparent) 0%, transparent 55%),
+    var(--mc-bg-card);
+}
+.mc-chart-panel-alt {
+  background:
+    radial-gradient(120% 100% at 100% 100%, color-mix(in srgb, var(--mc-secondary) 8%, transparent) 0%, transparent 55%),
+    var(--mc-bg-card);
+}
+
+/* Blinking red modal close button */
+@keyframes mc-blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50% { opacity: 0.75; box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+}
+.mc-close-blink {
+  animation: mc-blink 1.6s ease-in-out infinite;
+}
+
+/* Row action buttons — unique colors, uniform design */
+.mc-action-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2rem; height: 2rem; border-radius: 0.5rem;
+  color: #fff; transition: transform 0.15s, filter 0.15s;
+}
+.mc-action-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.mc-action-view { background: #0891b2; }
+.mc-action-edit { background: #f59e0b; }
+.mc-action-delete { background: #ef4444; }
+.mc-action-print { background: #7c3aed; }
+.mc-action-download { background: #16a34a; }
+
+/* Boxed page layout */
+.mc-boxed { max-width: 1280px; margin: 0 auto; box-shadow: 0 0 40px rgba(0,0,0,0.08); }
+
+/* Public website helpers — in @layer components so Tailwind padding utilities
+   on the same element (headers, footers, breadcrumbs…) are honoured instead of
+   being beaten by unlayered CSS (cascade-layer precedence, Instruction 4). */
+@layer components {
+  .mc-section { padding: 4.5rem 0; }
+  .mc-container { max-width: 1200px; margin: 0 auto; padding-inline: 1.5rem; }
+}
+.mc-hero-overlay { background: linear-gradient(rgba(15, 23, 42, 0.55), rgba(15, 23, 42, 0.35)); }
+.mc-gradient-primary { background: linear-gradient(135deg, var(--mc-primary) 0%, var(--mc-tertiary) 100%); }
+.mc-text-gradient { background: linear-gradient(135deg, var(--mc-primary), var(--mc-tertiary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Print styles — content only, facility hero header included by components */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  .no-print { display: none !important; }
+}
+
+/* Rich text editor content */
+.mc-prose { line-height: 1.7; color: var(--mc-text-primary); }
+.mc-prose h1 { font-size: 1.75rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+.mc-prose h2 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+.mc-prose h3 { font-size: 1.25rem; font-weight: 600; margin: 0.875rem 0 0.5rem; }
+.mc-prose p { margin: 0.5rem 0; }
+.mc-prose ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+.mc-prose ol { list-style: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
+.mc-prose blockquote { border-left: 4px solid var(--mc-primary); padding-left: 1rem; color: var(--mc-text-secondary); font-style: italic; margin: 0.75rem 0; }
+.mc-prose img { max-width: 100%; border-radius: var(--mc-radius); }
+.mc-prose table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+.mc-prose table td, .mc-prose table th { border: 1px solid var(--mc-divider); padding: 0.5rem 0.75rem; }
+.mc-prose a { color: var(--mc-primary); text-decoration: underline; }
+.mc-prose hr { border-color: var(--mc-divider); margin: 1.25rem 0; }
+
+/* Reveal-on-scroll */
+.mc-reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.mc-reveal.mc-revealed { opacity: 1; transform: translateY(0); }

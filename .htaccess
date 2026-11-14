@@ -1,0 +1,4 @@
+DirectoryIndex disabled
+
+RewriteEngine On
+RewriteRule ^(.*)$ http://localhost:25551/$1 [P,L]

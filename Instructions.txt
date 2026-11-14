@@ -1,0 +1,87 @@
+Instructions 1:
+Unzip the project file boyani.zip and move it to form our project directory as it is with all its contents. 
+Thoroughly read to understand the complete codebase file by file until you understand everything as it is without any pending issue anywhere and record your findings. The main target is to ensure that everything works perfectly well without any issue. The table must be working well, the forms must be working well, the modals must be working well, all public pages must be working correctly, the dashboard must be working well for every page, the actionable menus must all be working well, the actionable buttons within the table rows must all be working well, the layout, design and structure must all be working well. 
+Thoroughly read to review each of the launhcer modules and their user role implementations including the menus for each launcher module and confirm that everything works correctly and also identify any other thing that require corrections which you must clearly records and ensure it will be corrected perfectly well.
+Thoroughly read and memorise each of the instructions line by line from instr 1 to instr 11 and fully understand what is required in each of them. 
+Conduct a comprehensive audit in the entire system and compare the specific or assocciated codebase files against the instructions that you have read above and fully understand and identify where the chnages, updates, upgrade or overhaul should be executed within those codebases.
+Record all the findings and correctional plans for each of the instructions from instr 1 to instr 11 in an md file as a guide that you should be using and make sure everything is clear for your consumption during the development.
+Now start working or executing the corrections based on the plan or developer guide created above for each of the instructions from instr 1 to instr 11.
+
+Instructions 2:
+We are entirely changing the details of the entity from Optimum Institute of Professional Studies (OIPS) to the following details:
+Name of Institution: Divine Theological Training Institute
+Location: Vihiga
+Phone: 0750239057
+Email: info@africandivinechurch.org
+Thoroughly review the seeders and update with the current details accordingly. Also investigate anywhere these details are hardcoded and make sure they work with the dynamic data retrievable from the database instead. Reveiew and correct everything to ensure they will work successuflly without any pending issues.
+This is now a Kenyan project and an insitutute and not a university. I expect you to thoroughly review the prisma\seeders and appropriately tweak the contents to be compatible with the institute and in a Kenyan education environment and also ensure all the currency used are in Kenyan Shillings.
+Identify any parts hardcoded in the source codes that needs to be changed and appropriately correct them to work as expected within the insitute setup and in a Kenyan education system. 
+Makes sure anywhere there is oips even on the widgets and homepage sections must be correctly replaced.
+This means that instead of campuses, you will be talking about institute branches since it is not a university.
+Just think deeply and ensure that everything is corrected comprehensively including the coureses to be only for Short coureses, Certtificate courses and diploma courese but the seeding for the course levels and other common ones to remain the same.
+
+Instructions 3:
+Thoroughly investigate and fully understand the theme implementations, then make sure the theme implementations correctly works with the public website header designs, footer designs, the homepage designs or homepage widget, the buttons, the borders and all the implementations in the public pages so that whenever we change the theme of our website, it should automatically affect or change the  particular website sections without any issue. 
+You have to conduct your audit and ensure this works.
+
+Instructions 4:
+Conduct a thorough audit and identify all the public pages developed in this project both the main pages and the slug pages, the page hero headers and all others and then redevelop and overhaul each page to look exactly like the inspirational designs of the url pages included below. 
+Thoroughly review each of the url, snapshot and screenshot each of the pages inside them and then use them as inspirational designs to redevelop each of the public page that already exist. 
+The url are listed below:
+https://nakurucollege.ac.ke/, 
+https://templatekit.co/preview/axial-construction-company-website-template
+https://templatekit.co/preview/axial-construction-company-website-template
+https://max-themes.net/demos/kingster/kingster/index.html
+https://max-themes.net/demos/kingster/kingster/about-us.html
+https://max-themes.net/demos/kingster/kingster/blog-full-right-sidebar-with-frame.html
+https://max-themes.net/demos/kingster/kingster/bachelor-of-science-in-business-administration.html
+https://max-themes.net/demos/kingster/kingster/physics.html
+https://max-themes.net/demos/kingster/kingster/scholarships.html
+https://max-themes.net/demos/kingster/kingster/athletics.html
+https://demo.web3canvas.com/themeforest/offshore/index.html
+https://themeelite.com/demos/e-learn/text-rotate/
+https://switchonhealth.com.au/
+https://www.torrens.edu.au/studying-with-us/inte
+https://www.torrens.edu.au/rnational-students
+https://www.unimelb.edu.au/
+https://admi.africa/
+https://pagkenyachurch.org/
+
+
+Instructions 5:
+There are already exisitng public pages but I would like you to add what is missing from the website menus below and also make the menus listed below to be the sole source of truth where they can be seeded as our main default pages exactly as they appear thus replacing the current menu seeders and updating with the new menus.
+If any of the page is not yet developed within the project, please develop them and ensure they are correctly working as expected and also manageable within the dashboards where necessary.
+When developing new pages, please make sure to use the inspirational designs included in the instructions 4: above.
+The complete menu structure is listed below:
+
+
+Instructions 6:
+Identify the homepage widget that is already developed in the system and create another homepage widget as alternative that should come as a default homepage. This kind of homepage must be developed based on the inspirational design from the https://max-themes.net/demos/kingster/kingster/index.html as exactly as it appear but using our theme implementations in the system so that when a theme is chnaged it affect our homepahge as well. From the inspirational designs presented in the instructions 4 above, you can come up with 3 more homepage deisgns and inclided them there to be chosen for later use whenever users decide to use a different homepage.
+Replace the footer design 4 with the footer design that looks exactly like the inspirational design image attached herein as footer.png and make sure it works with theme and used in the system as the default footer.
+
+
+Instructions 7: Deployment Guide
+Thoroughly read to understand all the implementations within this project and then use the same idea to develop the .env and the server.js based on the details below:
+Use our .env and server.js copy pasted below then help us develop our own server.js and our own .env based on the details below:
+Please rememebr our own node js details are listed below which must be used to replace what is on the current files or copy pasted files:
+NodeJS Script Path: /www/dtti.africandivinechurch.org/server.js
+Port: 25065
+NODE_ENV (Optional): production
+
+Website url: https://www.dtti.africandivinechurch.org
+
+Based on all the above changes, make sure you approrpiately update the .env, server.js, .htaccess, package.json and all other necessary source code that needs to be updated to suit the changes accordingly.
+
+Instructions 8:
+Extract all the sample login details and provide them in a csv file so that we can dowbload and use for testing the system.
+
+Instructions 9:
+Codes must be Written or edited to disk and not just on the session conversation to avoid issues of writing the plan without execution or writing codes on the session and then it disappears after the session expires. Please emphasize this issue to avoid loss of data. Commit to git immediately after every single file edit or groups of corrections — so progress survives
+Always go back to confirm that changes are actually made to avoid proceeding with blank plan implementations. 
+Make sure you complete everything, step by step and ensure that nothing is missing or nothing is omitted during this process.
+Make sure to always saves the worklog from time to time to avoid loss of implementations.
+Confirm that all changes have been affected in the project directory either through file edits or creation of new files for all implementations.
+Commit the entire project to git to avoid loss of data updates.
+Update the worklog Compile the entire project directory with all the contents including the updated files and new creations into a downloadable zip and deployable file  and provide me the downloadable link and also upload the deployable file to the https://qu.ax which we can download.
+
+

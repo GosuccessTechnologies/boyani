@@ -1,0 +1,16 @@
+{
+  "name": "Boyani Health Dispensary Attendance",
+  "short_name": "BoyaniHealth",
+  "start_url": "/attendance",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "description": "Boyani Health Dispensary staff attendance — GPS-checked check-in and check-out.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

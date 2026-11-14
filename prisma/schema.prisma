@@ -1,0 +1,1489 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// MUDHIERO NURSING HOME — CLINIC & NURSING MANAGEMENT SYSTEM — PRISMA SCHEMA
+// ═══════════════════════════════════════════════════════════════════════════
+// Architecture: Next.js 16 App Router + Prisma/SQLite + Tailwind 4 + shadcn/ui
+// Auth pattern: Bearer-token sessions (imported from hills.zip, adapted)
+// Config pattern: CompanyConfig key-value store (imported from hills.zip)
+// Theme pattern: Theme model (adapted from politicsmigori platform)
+// Pharmacy pattern: Drug + PharmacySale tables (clinic.zip domain + hills rigor)
+// ═══════════════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// USERS, SESSIONS & AUDIT  (imported from hills.zip)
+// ─────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  firstName String   @default("")
+  lastName  String   @default("")
+  passwordHash String
+  role      String   @default("STAFF") // ADMIN, DOCTOR, NURSE, PHARMACIST, LAB_TECH, CASHIER, RECEPTIONIST, HR, INVENTORY, STAFF
+  phone     String   @default("")
+  avatarUrl String   @default("")
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions   Session[]
+  auditLogs  AuditLog[]
+  loginHistory UserLoginHistory[]
+  quotations Quotation[] @relation("QuotationCreator")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityName String
+  entityId   String?
+  details    String   @default("")
+  ipAddress  String   @default("")
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityName])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FACILITY CONFIGURATION  (imported & adapted from hills.zip)
+// ─────────────────────────────────────────────────────────────
+
+model CompanyConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  @@map("company_config")
+}
+
+model Branch {
+  id         String  @id @default(cuid())
+  branchCode String  @unique
+  name       String
+  county     String  @default("Nairobi")
+  town       String  @default("")
+  address    String  @default("")
+  phone      String  @default("")
+  email      String  @default("")
+  latitude   Float?
+  longitude  Float?
+  isMain     Boolean @default(false)
+  isActive   Boolean @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+model Department {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String  @default("")
+  iconKey     String  @default("")
+  imageUrl    String  @default("")
+  color       String  @default("#0d9488")
+  displayOrder Int    @default(0)
+  isPublic    Boolean @default(true)  // shown on public website services
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  services    Service[]
+  websiteServices WebsiteService[]
+  staff       StaffAssignment[]
+
+  @@index([displayOrder])
+}
+
+// Billable service — priced by ADMIN only (facility management)
+model Service {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  departmentId String?
+  department  Department? @relation(fields: [departmentId], references: [id])
+  category    String  @default("CLINICAL") // CLINICAL, LABORATORY, PHARMACY, ADMISSION, MCH, IMAGING, CONSULTATION
+  description String  @default("")
+  price       Float   @default(0)
+  shaCovered  Boolean @default(false) // payable via SHA insurance
+  durationMin Int     @default(30)
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  billItems   BillItem[]
+  quotationItems QuotationItem[]
+  labTests    LabTest[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+// ─────────────────────────────────────────────────────────────
+// PATIENTS & REGISTRATION (Kenyan facility demographics)
+// ─────────────────────────────────────────────────────────────
+
+model Patient {
+  id            String   @id @default(cuid())
+  patientNo     String   @unique   // auto-generated e.g. PAT-2026-0001
+  firstName     String
+  lastName      String
+  dateOfBirth   DateTime?
+  gender        String   @default("UNKNOWN") // MALE, FEMALE
+  nationalId    String   @default("")
+  phone         String   @default("")
+  email         String   @default("")
+  bloodType     String   @default("")
+  allergies     String   @default("")
+  maritalStatus String   @default("")
+  // Kenyan location hierarchy
+  county        String   @default("")
+  subCounty     String   @default("")
+  location      String   @default("")
+  subLocation   String   @default("")
+  village       String   @default("")
+  address       String   @default("")
+  // Next of kin
+  kinName       String   @default("")
+  kinRelationship String @default("")
+  kinPhone      String   @default("")
+  // Payment mode
+  paymentMode   String   @default("CASH") // CASH, SHA, INSURANCE
+  shaNumber     String   @default("")
+  insuranceProvider String @default("")
+  insuranceNo   String   @default("")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  visits        Visit[]
+  appointments  Appointment[]
+  prescriptions Prescription[]
+  labOrders     LabOrder[]
+  admissions    Admission[]
+  bills         Bill[]
+  payments      Payment[]
+  ancRecords    ANCRegistration[]
+  deliveries    DeliveryRecord[]
+  vaccinations  VaccinationRecord[]
+  vitals        VitalRecord[]
+  pharmacySales PharmacySale[]
+  consultations Consultation[]
+
+  @@index([phone])
+  @@index([nationalId])
+  @@index([createdAt])
+}
+
+model Visit {
+  id          String   @id @default(cuid())
+  visitNo     String   @unique
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitDate   DateTime @default(now())
+  visitType   String   @default("OUTPATIENT") // OUTPATIENT, INPATIENT, EMERGENCY, MATERNITY, WALKIN_PHARMACY
+  status      String   @default("ACTIVE")     // ACTIVE, WAITING_LAB, WAITING_DOCTOR, WAITING_PHARMACY, READY_FOR_PAYMENT, COMPLETED, CANCELLED
+  doctorId    String?
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bills       Bill[]
+  labOrders   LabOrder[]
+  prescriptions Prescription[]
+  admissions  Admission[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([visitDate])
+}
+
+// ─────────────────────────────────────────────────────────────
+// APPOINTMENTS (public booking → doctor dashboard)
+// ─────────────────────────────────────────────────────────────
+
+model Appointment {
+  id          String   @id @default(cuid())
+  appointmentNo String @unique
+  patientId   String?
+  patient     Patient? @relation(fields: [patientId], references: [id])
+  patientName String   @default("")
+  patientPhone String  @default("")
+  patientEmail String  @default("")
+  doctorId    String   @default("")  // User id of doctor
+  departmentId String?
+  appointmentDate DateTime
+  timeSlot    String   @default("")
+  reason      String   @default("")
+  status      String   @default("PENDING") // PENDING, CONFIRMED, CHECKED_IN, COMPLETED, CANCELLED
+  source      String   @default("WEBSITE") // WEBSITE, PHONE, WALK_IN
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([appointmentDate])
+  @@index([status])
+  @@index([doctorId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOCTOR CONSULTATIONS & PRESCRIPTIONS
+// ─────────────────────────────────────────────────────────────
+
+model Consultation {
+  id          String   @id @default(cuid())
+  consultationNo String @unique
+  visitId     String?
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  doctorId    String   @default("")
+  chiefComplaint String @default("")
+  history     String   @default("")     // anamnesis
+  examination String   @default("")     // physical exam findings
+  diagnosis   String   @default("")
+  differential String  @default("")
+  treatmentPlan String @default("")
+  followUpDate DateTime?
+  status      String   @default("IN_PROGRESS") // IN_PROGRESS, AWAITING_RESULTS, COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
+}
+
+model Prescription {
+  id             String   @id @default(cuid())
+  prescriptionNo String   @unique
+  patientId      String
+  patient        Patient  @relation(fields: [patientId], references: [id])
+  visitId        String?
+  visit          Visit?   @relation(fields: [visitId], references: [id])
+  consultationId String?
+  doctorId       String   @default("")
+  status         String   @default("PRESCRIBED") // PRESCRIBED, DISPENSING, PARTIALLY_DISPENSED, DISPENSED, CANCELLED
+  dispensedById  String   @default("")
+  dispensedAt    DateTime?
+  notes          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items          PrescriptionItem[]
+
+  @@index([patientId])
+  @@index([status])
+}
+
+model PrescriptionItem {
+  id             String  @id @default(cuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  drugId         String?
+  drug           Drug?   @relation(fields: [drugId], references: [id])
+  drugName       String  @default("")
+  dosage         String  @default("")  // e.g. 500mg
+  frequency      String  @default("")  // e.g. 3x daily
+  duration       String  @default("")  // e.g. 5 days
+  quantity       Int     @default(1)
+  instructions   String  @default("")
+  dispensedQty   Int     @default(0)
+  unitPrice      Float   @default(0)
+  totalPrice     Float   @default(0)
+
+  @@index([prescriptionId])
+  @@index([drugId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// LABORATORY
+// ─────────────────────────────────────────────────────────────
+
+model LabTest {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  serviceId   String?  // linked billable Service (pricing by admin)
+  service     Service? @relation(fields: [serviceId], references: [id])
+  category    String  @default("HEMATOLOGY") // HEMATOLOGY, CHEMISTRY, MICROBIOLOGY, PARASITOLOGY, URINALYSIS, SEROLOGY, CYTOLOGY, POCT
+  specimenType String @default("Blood")
+  turnaroundHours Int @default(24)
+  referenceRange String @default("")
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems  LabOrderItem[]
+
+  @@index([category])
+}
+
+model LabOrder {
+  id          String   @id @default(cuid())
+  orderNo     String   @unique
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  visitId     String?
+  visit       Visit?   @relation(fields: [visitId], references: [id])
+  orderedById String   @default("")  // doctor
+  requestSource String @default("DOCTOR") // DOCTOR, RECEPTIONIST, NURSE — where the order originated
+  status      String   @default("PENDING") // PENDING, SAMPLE_COLLECTED, IN_PROGRESS, COMPLETED, VERIFIED, CANCELLED
+  priority    String   @default("ROUTINE") // ROUTINE, URGENT, STAT
+  notes       String   @default("")
+  doctorNotes String   @default("") // doctor's medication/interpretation notes under results
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       LabOrderItem[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model LabOrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       LabOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  labTestId   String
+  labTest     LabTest  @relation(fields: [labTestId], references: [id])
+  testName    String   @default("")
+  result      String   @default("")
+  resultValue String   @default("")
+  unit        String   @default("")
+  flag        String   @default("") // NORMAL, HIGH, LOW, CRITICAL
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  performedById String @default("")
+  completedAt DateTime?
+  remarks     String   @default("")
+  // Instruction 24 — sample collection & rich narrative results
+  sampleType  String   @default("") // specimen recorded per test at collection
+  sampleRef   String   @default("") // lab sample reference/barcode
+  narrative   String   @default("") // tiptap HTML narrative (full result story)
+
+  @@index([orderId])
+  @@index([labTestId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// NURSING: VITALS, WARDS, BEDS, ADMISSIONS
+// ─────────────────────────────────────────────────────────────
+
+model VitalRecord {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  visitId     String?
+  recordedById String  @default("")
+  temperature Float    @default(0) // °C
+  bloodPressureSystolic Int @default(0)
+  bloodPressureDiastolic Int @default(0)
+  pulse       Int      @default(0)
+  respiratoryRate Int  @default(0)
+  weight      Float    @default(0) // kg
+  height      Float    @default(0) // cm
+  bmi         Float    @default(0)
+  oxygenSaturation Int @default(0) // %
+  bloodGlucose Float   @default(0) // mmol/L
+  painScore   Int      @default(0)
+  notes       String   @default("")
+  recordedAt  DateTime @default(now())
+
+  @@index([patientId])
+  @@index([recordedAt])
+}
+
+model Ward {
+  id          String  @id @default(cuid())
+  name        String
+  code        String  @unique
+  wardType    String  @default("GENERAL") // GENERAL, SEMI_PRIVATE, PRIVATE, EXECUTIVE, ICU, HDU, ISOLATION, PEDIATRIC, NEONATAL, MATERNITY, BARIATRIC, ORTHOPEDIC
+  gender      String  @default("MIXED")   // MALE, FEMALE, MIXED
+  dailyRate   Float   @default(0)   // bed/day charge — set by ADMIN
+  floor       String  @default("")
+  description String  @default("")
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  beds        Bed[]
+
+  @@index([wardType])
+}
+
+model Bed {
+  id          String  @id @default(cuid())
+  bedNumber   String  @unique
+  wardId      String
+  ward        Ward    @relation(fields: [wardId], references: [id])
+  status      String  @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED, MAINTENANCE
+  notes       String  @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  admissions  Admission[]
+
+  @@index([wardId])
+  @@index([status])
+}
+
+model Admission {
+  id            String   @id @default(cuid())
+  admissionNo   String   @unique
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  visitId       String?
+  visit         Visit?   @relation(fields: [visitId], references: [id])
+  bedId         String?
+  bed           Bed?     @relation(fields: [bedId], references: [id])
+  admissionType String   @default("EMERGENCY") // EMERGENCY, ELECTIVE, MATERNITY, OBSERVATION
+  admittedById  String   @default("") // nurse
+  doctorId      String   @default("")
+  admittingDiagnosis String @default("")
+  admissionDate DateTime @default(now())
+  dischargeDate DateTime?
+  dischargeType String   @default("")   // NORMAL, REFERRED, ABSCONDED, DECEASED
+  dischargeNotes String  @default("")
+  status        String   @default("ACTIVE") // ACTIVE, DISCHARGED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([status])
+  @@index([admissionDate])
+}
+
+// ─────────────────────────────────────────────────────────────
+// MCH: ANTENATAL, DELIVERIES, VACCINATIONS
+// ─────────────────────────────────────────────────────────────
+
+model ANCRegistration {
+  id          String   @id @default(cuid())
+  ancNo       String   @unique
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  lmpDate     DateTime?
+  eddDate     DateTime?
+  gravida     Int      @default(1)
+  para        Int      @default(0)
+  gestationWeeks Int  @default(0)
+  bloodGroup  String   @default("")
+  rhFactor    String   @default("")
+  riskFactors String   @default("")
+  partnerName String   @default("")
+  partnerHivTested Boolean @default(false)
+  pmtctEnrolled Boolean @default(false)
+  supplements String   @default("") // iron, folic acid
+  visitsCompleted Int @default(0)
+  status      String   @default("ACTIVE") // ACTIVE, COMPLETED, REFERRED, DEFAULTED
+  registeredById String @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([status])
+}
+
+model DeliveryRecord {
+  id            String   @id @default(cuid())
+  deliveryNo    String   @unique
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  ancId         String?
+  deliveryDate  DateTime @default(now())
+  deliveryType  String   @default("VAGINAL") // VAGINAL, CESAREAN, ASSISTED
+  outcome       String   @default("LIVE_BIRTH") // LIVE_BIRTH, STILL_BIRTH, MISCARRIAGE
+  babyGender    String   @default("")
+  babyWeight    Float?
+  apgarScore    Int      @default(0)
+  complications String   @default("")
+  deliveredById String   @default("")
+  status        String   @default("COMPLETED")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([deliveryDate])
+}
+
+model VaccinationRecord {
+  id          String   @id @default(cuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  vaccineName String
+  doseNumber  Int      @default(1)
+  dateGiven   DateTime @default(now())
+  nextDueDate DateTime?
+  batchNumber String   @default("")
+  administeredBy String @default("")
+  site        String   @default("")
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([dateGiven])
+}
+
+// ─────────────────────────────────────────────────────────────
+// PHARMACY  (clinic.zip domain + hills.zip sale rigor)
+// ─────────────────────────────────────────────────────────────
+
+model Drug {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  genericName String   @default("")
+  category    String   @default("GENERAL") // GENERAL, ANTIBIOTICS, ANALGESICS, ANTIMALARIALS, CHRONIC_CARE, PEDIATRIC, TOPICAL, IV_FLUIDS, VACCINES, OTC, SUPPLEMENTS
+  dosageForm  String   @default("TABLET") // TABLET, CAPSULE, SYRUP, INJECTION, CREAM, OINTMENT, DROPS, INHALER, SUPPOSITORY, IV_FLUID
+  strength    String   @default("")
+  unit        String   @default("pack")
+  stock       Int      @default(0)
+  reorderLevel Int     @default(20)
+  unitCost    Float    @default(0)   // buying price — ADMIN only
+  unitPrice   Float    @default(0)   // selling price — ADMIN only
+  expiryDate  DateTime?
+  batchNumber String   @default("")
+  supplier    String   @default("")
+  rackLocation String  @default("")
+  counterShelf String  @default("")     // counter shelf name/number for POS retrieval
+  isControlled Boolean @default(false)
+  notes       String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prescriptionItems PrescriptionItem[]
+  saleItems   PharmacySaleItem[]
+  stockMovements DrugStockMovement[]
+
+  @@index([category])
+  @@index([name])
+  @@index([stock])
+}
+
+model DrugStockMovement {
+  id          String   @id @default(cuid())
+  drugId      String
+  drug        Drug     @relation(fields: [drugId], references: [id])
+  movementType String  @default("RESTOCK") // RESTOCK, SALE, ADJUSTMENT, EXPIRED, TRANSFER, RETURN
+  quantity    Int      @default(0)
+  reference   String   @default("")
+  notes       String   @default("")
+  createdById String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([drugId])
+  @@index([createdAt])
+}
+
+// Pharmacy counter sale — pharmacist sees only own daily records,
+// weekly/monthly/advanced filters reserved for ADMIN.
+model PharmacySale {
+  id           String   @id @default(cuid())
+  saleNo       String   @unique
+  receiptNo    String   @default("")
+  pharmacistId String   @default("")
+  patientId    String?
+  patient      Patient? @relation(fields: [patientId], references: [id])
+  patientName  String   @default("Walk-in Customer")
+  patientPhone String   @default("")
+  prescriptionId String @default("")
+  subtotal     Float    @default(0)
+  discountAmount Float  @default(0)
+  totalAmount  Float    @default(0)
+  totalCost    Float    @default(0)
+  paymentMethod String  @default("CASH") // CASH, MPESA, CARD, SHA, BILLED_TO_VISIT
+  paymentStatus String  @default("COMPLETED") // COMPLETED, PENDING, BILLED
+  billToVisit  Boolean @default(false) // patient passes via registration → billed at cashier
+  visitId      String   @default("")
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        PharmacySaleItem[]
+
+  @@index([pharmacistId])
+  @@index([patientId])
+  @@index([createdAt])
+  @@index([paymentStatus])
+}
+
+model PharmacySaleItem {
+  id          String       @id @default(cuid())
+  saleId      String
+  sale        PharmacySale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  drugId      String?
+  drug        Drug?        @relation(fields: [drugId], references: [id])
+  drugName    String       @default("")
+  quantity    Int          @default(1)
+  unitPrice   Float        @default(0)
+  unitCost    Float        @default(0)
+  dosageInstruction String @default("")
+  totalPrice  Float        @default(0)
+
+  @@index([saleId])
+  @@index([drugId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// CASHIER / BILLING (POS pattern imported from hills.zip)
+// ─────────────────────────────────────────────────────────────
+
+// Consolidated patient bill: services from ALL departments + drugs
+model Bill {
+  id          String   @id @default(cuid())
+  billNo      String   @unique
+  receiptNo   String   @default("")
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  visitId     String?
+  visit       Visit?   @relation(fields: [visitId], references: [id])
+  cashierId   String   @default("")
+  subtotal    Float    @default(0)
+  discountAmount Float @default(0)
+  taxAmount   Float    @default(0)
+  totalAmount Float    @default(0)
+  paidAmount  Float    @default(0)
+  paymentMode String   @default("CASH") // CASH, SHA, MIXED
+  status      String   @default("UNPAID") // UNPAID, PARTIALLY_PAID, PAID, CANCELLED
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       BillItem[]
+  payments    Payment[]
+
+  @@index([patientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BillItem {
+  id          String   @id @default(cuid())
+  billId      String
+  bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  itemType    String   @default("SERVICE") // SERVICE, DRUG, LAB, ADMISSION_BED, CONSULTATION
+  serviceId   String?
+  service     Service? @relation(fields: [serviceId], references: [id])
+  itemName    String   @default("")
+  quantity    Int      @default(1)
+  unitPrice   Float    @default(0)
+  totalPrice  Float    @default(0)
+  department  String   @default("")
+  shaCovered  Boolean  @default(false)
+  sourceRef   String   @default("") // lab order id / prescription id / admission id
+  createdAt   DateTime @default(now())
+
+  @@index([billId])
+  @@index([itemType])
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  paymentNo   String   @unique
+  billId      String?
+  bill        Bill?    @relation(fields: [billId], references: [id])
+  patientId   String?
+  patient     Patient? @relation(fields: [patientId], references: [id])
+  amount      Float    @default(0)
+  method      String   @default("CASH") // CASH, MPESA, CARD, SHA
+  shaClaimRef String   @default("")
+  receivedById String  @default("") // cashier
+  status      String   @default("COMPLETED") // COMPLETED, PENDING, REVERSED
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([billId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// QUOTATIONS  (imported from hills.zip — adapted to medical items)
+// ─────────────────────────────────────────────────────────────
+
+model Quotation {
+  id             String   @id @default(cuid())
+  quotationNo    String   @unique
+  customerName   String   @default("")
+  customerPhone  String   @default("")
+  customerEmail  String   @default("")
+  subtotal       Float    @default(0)
+  taxAmount      Float    @default(0)
+  discountAmount Float    @default(0)
+  totalAmount    Float    @default(0)
+  status         String   @default("DRAFT") // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED, CONVERTED_TO_BILL
+  validUntil     DateTime?
+  notes          String   @default("")
+  createdById    String?
+  createdBy      User?    @relation("QuotationCreator", fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  items          QuotationItem[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model QuotationItem {
+  id            String    @id @default(cuid())
+  quotationId   String
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  itemType      String    @default("SERVICE") // SERVICE, DRUG, PACKAGE
+  serviceId     String?
+  service       Service?  @relation(fields: [serviceId], references: [id])
+  referenceId   String    @default("") // drug id when itemType=DRUG
+  itemName      String    @default("")
+  quantity      Int       @default(1)
+  unitPrice     Float     @default(0)
+  totalPrice    Float     @default(0)
+  notes         String    @default("")
+
+  @@index([quotationId])
+  @@index([itemType])
+}
+
+// ─────────────────────────────────────────────────────────────
+// HR & PAYROLL
+// ─────────────────────────────────────────────────────────────
+
+model Employee {
+  id          String   @id @default(cuid())
+  employeeNo  String   @unique
+  firstName   String
+  lastName    String
+  userId      String?  // linked system account
+  department  String   @default("")
+  position    String   @default("")
+  profession  String   @default("") // DOCTOR, NURSE, PHARMACIST, LAB_TECH, etc.
+  specialization String @default("")
+  phone       String   @default("")
+  email       String   @default("")
+  nationalId  String   @default("")
+  kraPin      String   @default("")
+  nssfNo      String   @default("")
+  nhifNo      String   @default("")
+  gender      String   @default("")
+  dateOfBirth DateTime?
+  address     String   @default("")
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  salary      Float    @default(0)
+  bankName    String   @default("")
+  bankAccount String   @default("")
+  photoUrl    String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  attendance  AttendanceRecord[]
+  payrolls    PayrollRecord[]
+  assignments StaffAssignment[]
+
+  @@index([department])
+  @@index([isActive])
+}
+
+// Doctor/nurse assignment & shift — ADMIN only (Facility Management)
+model StaffAssignment {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  departmentId String?
+  department  Department? @relation(fields: [departmentId], references: [id])
+  assignmentType String @default("SHIFT") // SHIFT, DUTY, WARD, CLINIC
+  wardOrClinic String @default("")
+  shiftDate   DateTime @default(now())
+  shiftStart  String   @default("08:00")
+  shiftEnd    String   @default("17:00")
+  shiftType   String   @default("DAY") // DAY, NIGHT, EVENING, ON_CALL
+  notes       String   @default("")
+  status      String   @default("SCHEDULED") // SCHEDULED, ACTIVE, COMPLETED, CANCELLED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([shiftDate])
+}
+
+model JobPosting {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  department  String   @default("")
+  location    String   @default("")
+  employmentType String @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT, LOCUM, INTERNSHIP
+  description String   @default("") // rich text
+  requirements String  @default("") // rich text
+  salaryRange String   @default("")
+  openings    Int      @default(1)
+  deadline    DateTime?
+  isPublic    Boolean  @default(true)  // show on public careers page
+  status      String   @default("OPEN") // OPEN, CLOSED, DRAFT
+  createdBy   String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applications JobApplication[]
+
+  @@index([status])
+  @@index([isPublic])
+}
+
+model JobApplication {
+  id          String   @id @default(cuid())
+  jobPostingId String
+  jobPosting  JobPosting @relation(fields: [jobPostingId], references: [id])
+  applicantName String
+  email       String   @default("")
+  phone       String   @default("")
+  coverLetter String   @default("")
+  resumeUrl   String   @default("")
+  status      String   @default("RECEIVED") // RECEIVED, UNDER_REVIEW, SHORTLISTED, INTERVIEWED, OFFERED, HIRED, REJECTED
+  reviewedBy  String   @default("")
+  reviewNotes String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([jobPostingId])
+  @@index([status])
+}
+
+model PayrollRecord {
+  id          String   @id @default(cuid())
+  payrollNo   String   @unique
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  periodMonth Int      @default(1)
+  periodYear  Int      @default(2026)
+  basicSalary Float    @default(0)
+  allowances  Float    @default(0)
+  overtime    Float    @default(0)
+  bonuses     Float    @default(0)
+  grossPay    Float    @default(0)
+  paye        Float    @default(0)  // tax
+  nssfDeduction Float  @default(0)
+  shifDeduction Float  @default(0) // formerly NHIF
+  housingLevy Float  @default(0)
+  otherDeductions Float @default(0)
+  netPay      Float    @default(0)
+  status      String   @default("DRAFT") // DRAFT, APPROVED, PAID
+  paidAt      DateTime?
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([employeeId, periodMonth, periodYear])
+  @@index([status])
+}
+
+model PayrollConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String   @default("")
+}
+
+// ─────────────────────────────────────────────────────────────
+// ATTENDANCE (PWA with GPS)
+// ─────────────────────────────────────────────────────────────
+
+model AttendanceConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique // facility_ip, allowed_latitude, allowed_longitude, radius_meters
+  value       String
+}
+
+model AttendanceRecord {
+  id          String   @id @default(cuid())
+  userId      String   @default("") // system user
+  employeeId  String?
+  employee    Employee? @relation(fields: [employeeId], references: [id])
+  date        DateTime
+  checkIn     DateTime?
+  checkOut    DateTime?
+  checkInLat  Float?
+  checkInLng  Float?
+  checkOutLat Float?
+  checkOutLng Float?
+  checkInDevice String @default("")
+  status      String   @default("PRESENT") // PRESENT, LATE, ABSENT, ON_LEAVE, HALF_DAY
+  workHours   Float    @default(0)
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([date])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// INVENTORY (non-pharmacy assets & consumables)
+// ─────────────────────────────────────────────────────────────
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  category    String   @default("GENERAL") // GENERAL, EQUIPMENT, FURNITURE, CONSUMABLES, STATIONERY, LINEN, KITCHEN, CLEANING, IT
+  sku         String   @default("")
+  quantity    Int      @default(0)
+  unit        String   @default("pcs")
+  unitCost    Float    @default(0)
+  unitPrice   Float    @default(0)
+  reorderLevel Int     @default(10)
+  assignedTo  String   @default("") // employee id/name
+  location    String   @default("")
+  supplier    String   @default("")
+  condition   String   @default("GOOD") // GOOD, FAIR, DAMAGED, UNDER_REPAIR
+  notes       String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  movements   InventoryMovement[]
+
+  @@index([category])
+  @@index([quantity])
+}
+
+model InventoryMovement {
+  id          String   @id @default(cuid())
+  itemId      String
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+  movementType String  @default("IN") // IN, OUT, ASSIGN, RETURN, ADJUSTMENT, DISPOSE
+  quantity    Int      @default(0)
+  reference   String   @default("")
+  notes       String   @default("")
+  createdById String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([itemId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FILE MANAGER
+// ─────────────────────────────────────────────────────────────
+
+model FileRecord {
+  id          String   @id @default(cuid())
+  fileName    String
+  originalName String
+  url         String
+  mimeType    String   @default("")
+  size        Int      @default(0)   // bytes
+  module      String   @default("GENERAL") // GENERAL, WEBSITE, NEWS, DOCS, HR, GALLERY
+  uploadedById String  @default("")
+  folder      String   @default("/")
+  createdAt   DateTime @default(now())
+
+  @@index([module])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// WEBSITE / CMS MODULE  (patterns from politicsmigori platform)
+// ─────────────────────────────────────────────────────────────
+
+model Slider {
+  id               String   @id @default(cuid())
+  title            String
+  subtitle         String?
+  description      String?
+  imageUrl         String?
+  videoUrl         String?
+  backgroundUrl    String?
+  overlayColor     String?
+  overlayOpacity   Float?
+  ctaPrimaryText   String?
+  ctaPrimaryUrl    String?
+  ctaSecondaryText String?
+  ctaSecondaryUrl  String?
+  designId         Int      @default(1) // slider animation/design 1..20
+  displayOrder     Int      @default(0)
+  isActive         Boolean  @default(true)
+  autoRotate       Boolean  @default(true)
+  rotateDelayMs    Int      @default(6000)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([displayOrder])
+}
+
+model Menu {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  location     String   @default("HEADER") // HEADER, FOOTER
+  designId     Int      @default(1) // 1..20 menu/mega-menu designs
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        MenuItem[]
+}
+
+model MenuItem {
+  id           String   @id @default(cuid())
+  menuId       String
+  menu         Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parentId     String?
+  parent       MenuItem? @relation("MenuItemParent", fields: [parentId], references: [id])
+  children     MenuItem[] @relation("MenuItemParent")
+  label        String
+  url          String?
+  moduleKey    String?  // maps to dynamic pages: SERVICES, NEWS, CONTACT, BOOKING, DOWNLOADS, GALLERY, CAREERS
+  entityId     String?
+  isMega       Boolean  @default(false)
+  megaColumns  Int      @default(2)
+  megaImageUrl String?
+  megaDescription String @default("")
+  iconKey      String?
+  displayOrder Int      @default(0)
+  isActive     Boolean  @default(true)
+  openInNewTab Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([menuId])
+  @@index([parentId])
+}
+
+// A homepage design = ordered composition of widgets
+model HomepageDesign {
+  id           String   @id @default(cuid())
+  name         String
+  description  String   @default("")
+  designKey    Int      @default(1)  // 1..18
+  isActive     Boolean  @default(false)
+  previewUrl   String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  widgets      HomepageWidget[]
+}
+
+// 40 homepage widgets — reusable across the 18 homepage designs
+model HomepageWidget {
+  id              String   @id @default(cuid())
+  designId        String
+  design          HomepageDesign @relation(fields: [designId], references: [id], onDelete: Cascade)
+  moduleKey       String   // WIDGET key e.g. HERO_SLIDER, SERVICES_GRID, STATS_BAR ...
+  variantId       Int      @default(1) // widget style variant
+  sectionTitle    String?
+  sectionSubtitle String?
+  displayOrder    Int      @default(0)
+  isActive        Boolean  @default(true)
+  widthColumns    Int      @default(12)
+  backgroundColor String?
+  customConfig    String?  // JSON
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([displayOrder])
+}
+
+// Generic CMS page: About us, Why choose us, Values, Vision & Mission...
+model WebPage {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String   @default("")
+  content     String   @default("")  // rich text (tiptap HTML)
+  heroDesignId Int     @default(1)
+  breadcrumbDesignId Int @default(1)
+  seoTitle    String   @default("")
+  seoDescription String @default("")
+  moduleKey   String   @default("PAGE") // ABOUT, WHY_CHOOSE_US, VALUES, VISION_MISSION, CONTACT
+  showInMenu  Boolean  @default(true)
+  isPublic    Boolean  @default(true)
+  displayOrder Int     @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublic])
+  @@index([moduleKey])
+}
+
+model NewsPost {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String   @default("")
+  content     String   @default("") // rich text
+  category    String   @default("ANNOUNCEMENTS") // ANNOUNCEMENTS, EVENTS, HEALTH_TIPS, RESEARCH, NEWS
+  coverImageUrl String @default("")
+  author      String   @default("")
+  tags        String   @default("")
+  isFeatured  Boolean  @default(false)
+  isPublic    Boolean  @default(true)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublic])
+  @@index([category])
+  @@index([publishedAt])
+}
+
+model Download {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  fileUrl     String
+  fileExt     String   @default("pdf")
+  fileSize    Int      @default(0)
+  category    String   @default("GENERAL") // GENERAL, FORMS, REPORTS, POLICIES, BROCHURES, TENDER_DOCS
+  coverImageUrl String @default("")
+  downloadCount Int    @default(0)
+  isPublic    Boolean  @default(true)
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublic])
+  @@index([category])
+}
+
+model ContactMessage {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @default("")
+  phone       String   @default("")
+  subject     String   @default("")
+  message     String
+  department  String   @default("GENERAL")
+  status      String   @default("NEW") // NEW, IN_PROGRESS, RESOLVED, SPAM
+  assignedTo  String   @default("")
+  reply       String   @default("")
+  repliedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model GalleryAlbum {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  description String   @default("")
+  coverImageUrl String @default("")
+  displayOrder Int     @default(0)
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  photos      GalleryPhoto[]
+
+  @@index([isPublic])
+}
+
+model GalleryPhoto {
+  id          String   @id @default(cuid())
+  albumId     String
+  album       GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  title       String   @default("")
+  imageUrl    String
+  caption     String   @default("")
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([albumId])
+}
+
+model Testimonial {
+  id          String   @id @default(cuid())
+  patientName String
+  patientTitle String  @default("Patient")
+  quote       String
+  rating      Int      @default(5)
+  photoUrl    String   @default("")
+  department  String   @default("")
+  isFeatured  Boolean  @default(false)
+  isPublic    Boolean  @default(true)
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublic])
+}
+
+model Faq {
+  id          String   @id @default(cuid())
+  question    String
+  answer      String
+  category    String   @default("GENERAL") // GENERAL, BILLING, APPOINTMENTS, INSURANCE, PHARMACY, VISITING
+  displayOrder Int     @default(0)
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublic])
+}
+
+// Public doctor directory (linked to Employee/User)
+model DoctorProfile {
+  id          String   @id @default(cuid())
+  employeeId  String   @default("")
+  name        String
+  title       String   @default("Dr.")
+  specialization String @default("General Practitioner")
+  department  String   @default("")
+  qualifications String @default("")
+  bio         String   @default("")
+  photoUrl    String   @default("")
+  experienceYears Int  @default(1)
+  consultationFee Float @default(0)
+  availableDays String @default("Mon-Fri")
+  availableHours String @default("08:00-17:00")
+  isAcceptingPatients Boolean @default(true)
+  isPublic    Boolean  @default(true)
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublic])
+  @@index([specialization])
+}
+
+// ─────────────────────────────────────────────────────────────
+// THEMES  (adapted from politicsmigori platform — 10 seeded)
+// ─────────────────────────────────────────────────────────────
+
+model Theme {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  isPreset       Boolean  @default(false)
+  primary        String   @default("#0d9488")
+  secondary      String   @default("#f59e0b")
+  tertiary       String   @default("#0891b2")
+  fontBody       String   @default("Inter")
+  fontHeading    String   @default("Inter")
+  headingFormat  String   @default("normal")
+  bgBody         String   @default("#FFFFFF")
+  bgCard         String   @default("#F8FAFC")
+  bgSidebar      String   @default("#0f172a")
+  bgHeader       String   @default("#FFFFFF")
+  bgFooter       String   @default("#0f172a")
+  bgCardHeader   String   @default("#134e4a")
+  textPrimary    String   @default("#0f172a")
+  textSecondary  String   @default("#475569")
+  textMuted      String   @default("#94a3b8")
+  dividerColor   String   @default("#E2E8F0")
+  scrollbarColor String   @default("#CBD5E1")
+  scrollbarTrack String   @default("#F1F5F9")
+  bodyFormat     String   @default("full-width") // full-width | boxed
+  cardRadius     String   @default("rounded-xl")
+  sidebarStyle   String   @default("dark")
+  customCss      String?
+
+  @@index([isPreset])
+}
+
+// Single-row style settings for global site state
+model SiteSetting {
+  id               String   @id @default("main")
+  activeThemeId    Int      @default(1)
+  activeHomepageDesign Int @default(1)   // 1..18
+  activeHeaderDesign Int  @default(1)    // 1..10
+  activeFooterDesign Int @default(1)     // 1..10
+  activeMenuDesign Int    @default(1)    // 1..20
+  activeBreadcrumbDesign Int @default(1) // 1..8
+  activeHeroDesign Int    @default(1)
+  activeLoginDesign Int   @default(1)    // 1..6 — staff login page design
+  pageLayout       String @default("full-width") // full-width | boxed
+  defaultSeoTitle  String @default("Mudhiero Nursing Home")
+  defaultSeoDescription String @default("Quality Care, Compassionate Service.")
+  updatedAt        DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────
+// WEBSITE SERVICES  (public-facing CMS services — SEPARATE from
+// facility Service pricing. Shares only Department for grouping.)
+// ─────────────────────────────────────────────────────────────
+
+model WebsiteService {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  excerpt      String   @default("")            // homepage / listing blurb
+  content      String   @default("")            // tiptap HTML
+  featuredImage String  @default("")            // hero/banner image URL
+  bannerImage  String   @default("")
+  departmentId String?                           // optional clinical department link
+  department   Department? @relation(fields: [departmentId], references: [id])
+  iconKey      String   @default("")
+  displayStyle String   @default("cards")       // cards | pills | table — sub-service listing style on public site
+  displayOrder Int      @default(0)
+  isFeatured   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subServices  WebsiteSubService[]
+
+  @@index([isActive])
+  @@index([displayOrder])
+}
+
+model WebsiteSubService {
+  id          String   @id @default(cuid())
+  serviceId   String
+  service     WebsiteService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  title       String
+  description String   @default("")            // tiptap HTML or plain text
+  iconKey     String   @default("")
+  displayOrder Int     @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([displayOrder])
+}
+
+// ─────────────────────────────────────────────────────────────
+// USER LOGIN HISTORY  (per-user session audit for /admin/users)
+// ─────────────────────────────────────────────────────────────
+
+model UserLoginHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String   @default("LOGIN")    // LOGIN | LOGOUT | FAILED
+  ipAddress   String   @default("")
+  userAgent   String   @default("")
+  loggedInAt  DateTime @default(now())
+  loggedOutAt DateTime?
+  durationMinutes Int  @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([loggedInAt])
+  @@index([action])
+}
+
+// ─────────────────────────────────────────────────────────────
+// COMMUNICATION — SMS / EMAIL  (Africa's Talking + SMTP/POP3 ready)
+// ─────────────────────────────────────────────────────────────
+
+model SmsMessage {
+  id          String   @id @default(cuid())
+  direction   String   @default("OUT")      // OUT | IN
+  recipientPhone String
+  recipientName  String @default("")
+  message     String
+  audience    String   @default("CUSTOM")  // INDIVIDUAL | PATIENTS | ADMITTED | WALKIN | CSV | CUSTOM | APPOINTMENTS
+  status      String   @default("QUEUED")  // QUEUED | SENT | DELIVERED | FAILED
+  provider    String   @default("africastalking")
+  providerRef String   @default("")
+  sentById    String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([recipientPhone])
+}
+
+model EmailMessage {
+  id          String   @id @default(cuid())
+  direction   String   @default("OUT")
+  toEmail     String
+  toName      String   @default("")
+  subject     String
+  body        String                       // HTML body
+  audience    String   @default("CUSTOM")
+  status      String   @default("QUEUED")  // QUEUED | SENT | FAILED
+  provider    String   @default("smtp")
+  providerRef String   @default("")
+  sentById    String   @default("")
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────
+// PARCELS  (receiving & dispatch)
+// ─────────────────────────────────────────────────────────────
+
+model ParcelRecord {
+  id            String   @id @default(cuid())
+  trackingCode  String   @unique
+  type          String   @default("RECEIVED")  // RECEIVED | DISPATCHED
+  description   String   @default("")
+  senderName    String   @default("")
+  senderPhone   String   @default("")
+  senderAddress String   @default("")
+  receiverName  String   @default("")
+  receiverPhone String   @default("")
+  receiverAddress String @default("")
+  courier       String   @default("")          // courier company / handler
+  status        String   @default("PENDING")  // PENDING | IN_TRANSIT | DELIVERED | COLLECTED | RETURNED
+  notes         String   @default("")
+  handledById   String   @default("")
+  handledAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// CALLS  (received & made within the facility)
+// ─────────────────────────────────────────────────────────────
+
+model CallRecord {
+  id          String   @id @default(cuid())
+  direction   String   @default("IN")      // IN | OUT | MISSED
+  callerName  String   @default("")
+  callerPhone String
+  regarding   String   @default("")      // patient / department / general
+  category    String   @default("GENERAL") // GENERAL | APPOINTMENT | INQUIRY | COMPLAINT | FOLLOWUP | EMERGENCY
+  durationSec Int      @default(0)
+  notes       String   @default("")       // tiptap HTML or plain
+  handledById String   @default("")
+  callTime    DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([direction])
+  @@index([callTime])
+  @@index([callerPhone])
+}
